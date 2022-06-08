@@ -7,8 +7,8 @@ FROM fedora:latest
 USER root
 
 #installing powertop
-RUN yum update && \
-    yum install powertop && \
+RUN yum -y update && \
+    yum install -y powertop && \
 
 #starting powertop
 CMD ["powertop"]
