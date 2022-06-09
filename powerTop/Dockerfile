@@ -8,7 +8,7 @@ USER root
 
 #installing powertop
 RUN yum -y update && \
-    yum install -y powertop && \
+    yum install -y powertop
 
 #starting powertop
-CMD ["powertop"]
+CMD powertop
