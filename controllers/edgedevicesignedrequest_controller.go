@@ -15,8 +15,8 @@ import (
 
 	"github.com/project-flotta/flotta-operator/api/v1alpha1"
 	managementv1alpha1 "github.com/project-flotta/flotta-operator/api/v1alpha1"
-	"github.com/project-flotta/flotta-operator/internal/repository/edgedevice"
-	"github.com/project-flotta/flotta-operator/internal/repository/edgedevicesignedrequest"
+	"github.com/project-flotta/flotta-operator/internal/common/repository/edgedevice"
+	"github.com/project-flotta/flotta-operator/internal/common/repository/edgedevicesignedrequest"
 )
 
 type EdgeDeviceSignedRequestReconciler struct {
@@ -86,6 +86,9 @@ func (r *EdgeDeviceSignedRequestReconciler) Reconcile(ctx context.Context, req c
 			Namespace: edsr.Spec.TargetNamespace,
 			Labels: map[string]string{
 				v1alpha1.EdgeDeviceSignedRequestLabelName: v1alpha1.EdgeDeviceSignedRequestLabelValue,
+			},
+			Finalizers: []string{
+				DeviceFinalizer,
 			},
 		},
 		Spec: managementv1alpha1.EdgeDeviceSpec{

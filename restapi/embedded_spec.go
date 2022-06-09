@@ -281,7 +281,13 @@ func init() {
       "description": "Configuration for data transfer",
       "type": "object",
       "properties": {
-        "paths": {
+        "egress": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/data-path"
+          }
+        },
+        "ingress": {
           "type": "array",
           "items": {
             "$ref": "#/definitions/data-path"
@@ -500,6 +506,12 @@ func init() {
             "$ref": "#/definitions/gpu"
           }
         },
+        "host_devices": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/host_device"
+          }
+        },
         "hostname": {
           "type": "string"
         },
@@ -573,6 +585,35 @@ func init() {
           "$ref": "#/definitions/hardware-profile-configuration"
         },
         "period_seconds": {
+          "type": "integer"
+        }
+      }
+    },
+    "host_device": {
+      "type": "object",
+      "properties": {
+        "device_type": {
+          "description": "Type of the device",
+          "type": "string"
+        },
+        "gid": {
+          "description": "Group id",
+          "type": "integer"
+        },
+        "major": {
+          "description": "Major of the device",
+          "type": "integer"
+        },
+        "minor": {
+          "description": "Minor of the device",
+          "type": "integer"
+        },
+        "path": {
+          "description": "Path of the device",
+          "type": "string"
+        },
+        "uid": {
+          "description": "Owner id",
           "type": "integer"
         }
       }
@@ -1340,7 +1381,13 @@ func init() {
       "description": "Configuration for data transfer",
       "type": "object",
       "properties": {
-        "paths": {
+        "egress": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/data-path"
+          }
+        },
+        "ingress": {
           "type": "array",
           "items": {
             "$ref": "#/definitions/data-path"
@@ -1560,6 +1607,12 @@ func init() {
             "$ref": "#/definitions/gpu"
           }
         },
+        "host_devices": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/host_device"
+          }
+        },
         "hostname": {
           "type": "string"
         },
@@ -1633,6 +1686,35 @@ func init() {
           "$ref": "#/definitions/hardware-profile-configuration"
         },
         "period_seconds": {
+          "type": "integer"
+        }
+      }
+    },
+    "host_device": {
+      "type": "object",
+      "properties": {
+        "device_type": {
+          "description": "Type of the device",
+          "type": "string"
+        },
+        "gid": {
+          "description": "Group id",
+          "type": "integer"
+        },
+        "major": {
+          "description": "Major of the device",
+          "type": "integer"
+        },
+        "minor": {
+          "description": "Minor of the device",
+          "type": "integer"
+        },
+        "path": {
+          "description": "Path of the device",
+          "type": "string"
+        },
+        "uid": {
+          "description": "Owner id",
           "type": "integer"
         }
       }

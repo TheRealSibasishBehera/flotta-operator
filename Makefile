@@ -10,6 +10,8 @@ SKIP_TEST_IMAGE_PULL ?= false
 
 # Image URL to use all building/pushing image targets
 IMG ?= controller:latest
+HTTP_IMG ?= edge-api:latest
+
 # Produce CRDs that work back to Kubernetes 1.11 (no version conversion)
 CRD_OPTIONS ?= "crd:trivialVersions=true,preserveUnknownFields=false"
 # Cluster type - k8s/ocp/all
@@ -108,7 +110,7 @@ lint: ## Check if the go code is properly written, rules are in .golangci.yml
 ENVTEST_ASSETS_DIR=$(shell pwd)/testbin
 test: ## Run tests.
 test: GINKGO_OPTIONS ?= --skip e2e
-test: manifests generate fmt vet imports test-fast ## Run tests.
+test: manifests pre-build test-fast
 
 integration-test: ginkgo get-certs
 ifeq ($(SKIP_TEST_IMAGE_PULL), false)
@@ -146,21 +148,30 @@ check-certs: # Check cert subject
 	openssl x509 -noout -in /tmp/cert.pem --subject
 
 ##@ Build
-build: generate fmt vet imports ## Build manager binary.
+pre-build: ## Generate code, format it and organize imports before executing build
+pre-build: generate fmt imports vet
+
+build: pre-build ## Build manager binary.
 	go build -mod=vendor -o bin/manager main.go
 
-fast-build: generate fmt vet ## Fast build manager binary for local dev.
+fast-build: generate ## Fast build manager binary for local dev.
 	go build -mod=vendor -o bin/manager main.go
 
-run: manifests generate fmt vet ## Run a controller from your host.
+run: manifests pre-build ## Run a controller from your host.
 	$(Q) kubectl create ns $(FLOTTA_OPERATOR_NAMESPACE) 2> /dev/null || exit 0
 	OBC_AUTO_CREATE=false ENABLE_WEBHOOKS=false LOG_LEVEL=debug go run -mod=vendor ./main.go
 
+http-api-run: ## Run HTTP API in localhost
+	METRICS_ADDR=":8089" go run cmd/httpapi/main.go
+
 docker-build: ## Build docker image with the manager.
 	$(DOCKER) build -t ${IMG} .
+	$(DOCKER) build -f build/httpapi/Dockerfile -t ${HTTP_IMG} .
+
 
 docker-push: ## Push docker image with the manager.
 	$(DOCKER) push ${IMG}
+	$(DOCKER) push ${HTTP_IMG}
 
 release: ## Release the operator in github releases, tagged by its version.
 release: gen-manifests
@@ -193,6 +204,7 @@ endif
 $(eval TMP_ODIR := $(shell mktemp -d))
 gen-manifests: manifests kustomize ## Generates manifests for deploying the operator into $(TARGET)-flotta-operator.yaml
 	$(Q)cd config/manager && $(KUSTOMIZE) edit set image controller=${IMG}
+	$(Q)cd config/edge-api && $(KUSTOMIZE) edit set image edge-api=${HTTP_IMG}
 ifneq (,$(filter $(TARGET), k8s all))
 	$(Q)$(KUSTOMIZE) build config/k8s > $(TMP_ODIR)/k8s-flotta-operator.yaml
 	$(Q)echo -e "\033[92mDeployment file: $(TMP_ODIR)/k8s-flotta-operator.yaml\033[0m"
@@ -203,12 +215,14 @@ ifneq (,$(filter $(TARGET), ocp all))
 endif
 
 	$(Q)cd config/manager && $(KUSTOMIZE) edit set image controller=quay.io/project-flotta/flotta-operator
+	$(Q)cd config/edge-api && $(KUSTOMIZE) edit set image edge-api=quay.io/project-flotta/flotta-edge-api
 
 install-router: ## Install openshift router
 install-router:
 	$(KUBECTL) apply -f https://raw.githubusercontent.com/openshift/router/master/deploy/router_rbac.yaml
 	$(KUBECTL) apply -f https://raw.githubusercontent.com/openshift/router/master/deploy/route_crd.yaml
 	$(KUBECTL) apply -f https://raw.githubusercontent.com/openshift/router/master/deploy/router.yaml
+	$(KUBECTL) wait --for=condition=Ready pods --all -n openshift-ingress --timeout=60s
 
 install-cert-manager: ## Install cert-manager dependency
 install-cert-manager:
@@ -263,7 +277,7 @@ k8s-client-gen: client-gen lister-gen informer-gen ## Generate typed client for 
 	rm -rf gen-tmp
 
 validate-swagger: ## Validate swagger
-	$(DOCKER) run --rm -v $(PWD)/.spectral.yaml:/tmp/.spectral.yaml:z -v $(PWD)/swagger.yaml:/tmp/swagger.yaml:z stoplight/spectral lint --ruleset "/tmp/.spectral.yaml" /tmp/swagger.yaml
+	$(DOCKER) run --rm -v $(PWD)/.spectral.yaml:/tmp/.spectral.yaml:z -v $(PWD)/swagger.yaml:/tmp/swagger.yaml:z -v $(PWD)/swagger-backend.yaml:/tmp/swagger-backend.yaml:z stoplight/spectral lint --ruleset "/tmp/.spectral.yaml" /tmp/swagger.yaml /tmp/swagger-backend.yaml
 
 generate-agent-install-ostree:
 	sed -e "/<CA_PEM>/r /tmp/ca.pem" -e '/<CA_PEM>/d' \
